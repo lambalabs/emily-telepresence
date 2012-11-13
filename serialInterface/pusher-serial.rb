@@ -3,19 +3,22 @@ require 'pusher-client'
 require 'JSON'
 require 'serialport'
 
+# Parse command line
+usbmodem = ARGV[0]
+secret = ARGV[1]
+appkey = ARGV[2]
 
 # Open a serial connection
-usbmodem = ARGV[0]
-sp = SerialPort.new(usbmodem, 1200)
+#sp = SerialPort.new(usbmodem, 1200)
+cv = false;
 
 # Define emily parser for control data
-# FORMAT: {'control': 'w', 'number': 100}
-def emilyControl(data, sp)
+# FORMAT: {'key':'w'}
+def parseControl(data)
 	parsedData = JSON.parse(data)
 	control = parsedData['control']
-	number = parsedData['number']
-	
-	number.times {sp.write control}
+	#sp.write control
+	puts control
 end
 
 # Check if Serial interface provided
@@ -23,17 +26,18 @@ if ARGV.length == 0
 	abort("Usage: ruby pusher-serial.rb serialinterface")
 end
 
-# Setup Pusher Client
+# Setup Pusher Client asynchronously
 PusherClient.logger = Logger.new(STDOUT)
-options = {:secret => ''} 
-socket = PusherClient::Socket.new('6af61db87df1695de8d2', options)
+options = {:encrypted => true, :secret => secret} 
+socket = PusherClient::Socket.new(appkey, options)
 
 # Subscribe to emily channel
-socket.subscribe('emily')
+socket.subscribe('private-emily')
 
-# Bind to a channel event
-socket['emily'].bind('control') do |data|
-	emilyControl(data, sp)
+# Bind to a channel event 
+socket['emily'].bind('client-control') do |data|
+	parseControl data
 end
 
-socket.connect
+# Connect to socket
+socket.connect 
