@@ -9,16 +9,22 @@ secret = ARGV[1]
 appkey = ARGV[2]
 
 # Open a serial connection
-#sp = SerialPort.new(usbmodem, 1200)
+sp = SerialPort.new(usbmodem, 1200)
 cv = false;
 
 # Define emily parser for control data
 # FORMAT: {'key':'w'}
-def parseControl(data)
+def parseControl(data, sp)
 	parsedData = JSON.parse(data)
-	control = parsedData['control']
-	#sp.write control
-	puts control
+	control = parsedData['key']
+    if control.upcase == 'A'
+        puts 'D'
+    elsif control.upcase == 'D'
+        puts 'A'
+    else
+	    puts control
+    end
+	sp.write control
 end
 
 # Check if Serial interface provided
@@ -28,15 +34,15 @@ end
 
 # Setup Pusher Client asynchronously
 PusherClient.logger = Logger.new(STDOUT)
-options = {:encrypted => true, :secret => secret} 
-socket = PusherClient::Socket.new(appkey, options)
+socket = PusherClient::Socket.new(appkey, {:secret => secret} )
 
 # Subscribe to emily channel
 socket.subscribe('private-emily')
 
 # Bind to a channel event 
-socket['emily'].bind('client-control') do |data|
-	parseControl data
+socket['private-emily'].bind('client-control') do |data|
+	puts data
+	parseControl(data,sp)
 end
 
 # Connect to socket
